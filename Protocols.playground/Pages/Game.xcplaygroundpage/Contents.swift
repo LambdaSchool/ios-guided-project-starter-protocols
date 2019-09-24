@@ -7,19 +7,20 @@ import Foundation
 //:
 //: Let's reuse some of the work we defined from the previous page.
 
-protocol GeneratesRandomNumbers {
+
+
+protocol GeneratesRandomNumbers { //here we are creating a protocol which can generate numbers. it only needs to have the placeholders
     func random() -> Int
 }
 
-class OneThroughTen: GeneratesRandomNumbers {
+class OneThroughTen: GeneratesRandomNumbers { //this is the numbers we will be going through with the generator confromed to it!
     func random() -> Int {
-        return Int.random(in: 1...10)
+        
+        return Int.random(in: 1...10) //our generator just uses swifts built in random generator
     }
 }
 
 class Dice: CustomStringConvertible {
-   
-    
     let sides: Int
     let generator: GeneratesRandomNumbers
     
@@ -81,17 +82,20 @@ class KnockOut: DiceGame {
     func play() {
         
         delegate?.gameDidStart(self)
-        
         var reachedEndOfGame = false
+        
+        
         while reachedEndOfGame == false {
             for player in players where player.knockedOut == false {
+                //creating type of diceroll, which is two rolls.
                 let diceRollSum = dice.roll() + dice.roll()
                 
                 delegate?.game(self, player: player, didStartNewTrunWithDiceRoll: diceRollSum)
+                //if you roll your number you are knocked out and this gets called
                 if diceRollSum == player.knockOutNumber {
                     print("Player \(player.id) is knocked out from rolling: \(player.knockOutNumber)")
                     player.knockedOut = true
-                    
+                    //were creating a filtered array that has only active players
                     let activePlayers = players.filter { $0.knockedOut == false }
                     if activePlayers.isEmpty {
                         reachedEndOfGame = true
@@ -101,7 +105,7 @@ class KnockOut: DiceGame {
                     player.score += diceRollSum
                     if player.score >= 100 {
                         reachedEndOfGame = true
-                        print("\(player.id) has won with a final score of \(player.score.description).")
+                        print("Player \(player.id) has won with a final score of \(player.score.description).")
                         break
                     }
                 }
@@ -142,6 +146,6 @@ class DiceGameTracker: DiceGameDelegate {
 
 //: Finally, we need to test out our game. Let's create a game instance, add a tracker, and instruct the game to play.
 let tracker = DiceGameTracker()
-let game = KnockOut(numberOfPlayers: 100)
+let game = KnockOut(numberOfPlayers: 5)
 game.delegate = tracker
 game.play()
