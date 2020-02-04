@@ -33,20 +33,118 @@ class Dice {
 
 //: Now, let's define a couple protocols for managing a dice-based game.
 
+protocol Dicegame {
+    var dice: Dice { get }
+    func play()
+}
 
-
+protocol DiceGameDelegate {
+    func gameDidStart(_ game: Dicegame)
+    func game(_ game: Dicegame, player: Player, didStartNewTurnWithDiceRoll diceRoll: Int)
+    func gameDidEnd(_ game: Dicegame)
+}
 //: Lastly, we'll create a custom class for tracking a player in our dice game.
 
-
+class Player {
+    let id: Int
+    let knockOutNumber: Int = Int.random(in: 6...9)
+    var score: Int = 0
+    var knockedOut: Bool = false
+    
+    init(id: Int) {
+        self.id = id
+    }
+}
 
 //: With all that configured, let's build our dice game class called _Knock Out!_
+
+class KnockOut: Dicegame {
+    var dice: Dice = Dice(sides: 6, generator: OneThroughTen())
+    var players: [Player] = []
+    var delegate: DiceGameDelegate?
+    
+    init(numberOfPlayers: Int) {
+        for i in 1...numberOfPlayers {
+            let aPlayer = Player(id: i)
+            players.append(aPlayer)
+        }
+    }
+    
+    func play() {
+        
+        delegate?.gameDidEnd(self)
+        var reachedGameEnd = false
+        
+        // We are going until the game is over
+        while !reachedGameEnd {
+            // Each player who has not been knocked out gets a turn
+            for player in players where player.knockedOut == false {
+                // Roll two dice and add the numbers together
+                let diceRollSum = dice.roll() + dice.roll()
+                
+                delegate?.game(self, player: player, didStartNewTurnWithDiceRoll: diceRollSum)
+                //Did I roll my knockout number??
+                if diceRollSum == player.knockOutNumber {
+                    // Darn I rolled my knockeout number what happens now?
+                    print("Player \(player.id) is knocked out by rolling: \(player.knockOutNumber)")
+                    // Shoot ,man, Ive been knocked out
+                    player.knockedOut == true
+                    
+                    // Is this game over? did everyone get knocked out?
+                    let activePlayers = players.filter( {$0.knockedOut == false})
+                    if activePlayers.count == 0 {
+                        // No more players, GAME OVER
+                        reachedGameEnd = true
+                        delegate?.gameDidEnd(self)
+                        print("All players have been knocked out!)")
+                    }
+                } else {
+                    
+                    //Hurray, I ddidnt get knocked out, show me the money give me a higher score
+                    player.score += diceRollSum
+                    
+                    // Did i win
+                    if player.score >= 100 {
+                        //yay game over
+                        reachedGameEnd = true
+                        delegate?.gameDidEnd(self)
+                        print("Player \(player.id) has won with a final score of \(player.score)")
+                    }
+                }
+            }
+        }
+    }
+}
 
 
 
 //: The following class is used to track the status of the above game, and will conform to the `DiceGameDelegate` protocol.
 
-
+class DiceGameTracker: DiceGameDelegate {
+    var numberOfTurns = 0
+    
+    func gameDidStart(_ game: Dicegame) {
+        numberOfTurns = 0
+        if game is KnockOut {
+            print("Started a new game of Knockout")
+        }
+        print("The game is using a \(game.dice.sides)-sided dice")
+    }
+    
+    func game(_ game: Dicegame, player: Player, didStartNewTurnWithDiceRoll diceRoll: Int) {
+        numberOfTurns += 1
+        print("Player #\(player.id) rolled a \(diceRoll)")
+    }
+    
+    func gameDidEnd(_ game: Dicegame) {
+        print("The game lasted for \(numberOfTurns) turns")
+    }
+}
 
 //: Finally, we need to test out our game. Let's create a game instance, add a tracker, and instruct the game to play.
 
+let tracker = DiceGameTracker()
+let game = KnockOut(numberOfPlayers: 5)
 
+game.delegate = tracker
+game.play()
